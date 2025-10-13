@@ -1,0 +1,68 @@
+{
+  "vault_manager.cairo": {
+    "purpose": "Main vault management contract",
+    "functions": [
+      "create_vault(owner, asset_type, initial_deposit)",
+      "deposit(vault_id, amount, asset)",
+      "withdraw(vault_id, amount)",
+      "stake_btc(vault_id, amount)",
+      "unstake_btc(vault_id, amount)",
+      "calculate_yield(vault_id)",
+      "emergency_withdraw(vault_id)"
+    ],
+    "storage": [
+      "vaults: LegacyMap<u256, Vault>",
+      "vault_count: u256",
+      "total_btc_staked: u256",
+      "yield_rate: u256"
+    ]
+  },
+  "btc_bridge.cairo": {
+    "purpose": "Bitcoin bridge contract for cross-chain operations",
+    "functions": [
+      "initiate_btc_deposit(btc_txid, amount, recipient)",
+      "verify_btc_transaction(txid, proof)",
+      "mint_wrapped_btc(recipient, amount)",
+      "burn_wrapped_btc(amount, btc_address)",
+      "process_withdrawal(withdrawal_id)",
+      "update_btc_price(price, timestamp)"
+    ],
+    "storage": [
+      "btc_deposits: LegacyMap<felt252, BTCDeposit>",
+      "wrapped_btc_supply: u256",
+      "btc_price: u256",
+      "bridge_fee: u256"
+    ]
+  },
+  "yield_optimizer.cairo": {
+    "purpose": "Automated yield farming and optimization",
+    "functions": [
+      "optimize_yield(vault_id)",
+      "rebalance_portfolio(vault_id)",
+      "compound_rewards(vault_id)",
+      "calculate_apy(protocol_id)",
+      "migrate_funds(from_protocol, to_protocol, amount)",
+      "harvest_rewards(vault_id)"
+    ],
+    "storage": [
+      "protocol_apys: LegacyMap<u256, u256>",
+      "vault_allocations: LegacyMap<u256, Allocation>",
+      "last_rebalance: LegacyMap<u256, u64>"
+    ]
+  },
+  "privacy_mixer.cairo": {
+    "purpose": "Privacy-preserving transaction mixing",
+    "functions": [
+      "commit_deposit(commitment)",
+      "verify_nullifier(nullifier, proof)",
+      "private_withdraw(proof, recipient)",
+      "generate_commitment(amount, secret)",
+      "verify_zk_proof(proof, public_inputs)"
+    ],
+    "storage": [
+      "commitments: LegacyMap<felt252, bool>",
+      "nullifiers: LegacyMap<felt252, bool>",
+      "merkle_root: felt252"
+    ]
+  }
+}

@@ -1,0 +1,56 @@
+BitVault Finance - Starknet Re{Solve} Hackathon Submission
+
+🏆 HACKATHON INFORMATION
+Event: Starknet Re{Solve} Hackathon
+Track: Bitcoin Unleashed (highest prize pool)
+Deadline: Oct 15, 2025, 11:00 PM (PDT)
+Target Prizes: ~$19,500+ across 8 different awards
+
+🎯 PROJECT OVERVIEW
+Name: BitVault Finance
+Tagline: Cross-Chain Bitcoin DeFi Vault with Privacy & Yield Optimization
+Description: Comprehensive DeFi platform bridging Bitcoin to Starknet for yield farming, privacy-preserving transactions, and automated portfolio optimization.
+
+📊 TECHNICAL ACHIEVEMENTS
+- 4 comprehensive smart contracts (2000+ lines of Cairo code)
+- Modern React/Next.js frontend with mobile-first design
+- 5 major sponsor protocol integrations
+- Production-ready security standards with OpenZeppelin
+- Zero-knowledge privacy features
+- Comprehensive testing and documentation
+
+🔗 SPONSOR INTEGRATIONS
+✅ Xverse: Primary Bitcoin wallet integration
+✅ Atomiq: Cross-chain swap infrastructure  
+✅ VESU: Complete lending protocol integration (3 subtracks)
+✅ Troves: Yield aggregation and liquid staking
+✅ OpenZeppelin: Security contracts and standards
+
+🎮 CORE FEATURES
+1. Bitcoin Bridge: Trustless BTC to Starknet bridge with atomic swaps
+2. Smart Vaults: Multi-asset vault creation with automated staking
+3. Yield Optimization: AI-powered portfolio rebalancing across protocols
+4. Privacy Layer: Zero-knowledge transaction mixing for anonymity
+5. Mobile-First: Responsive design optimized for mobile devices
+
+💻 PROJECT STRUCTURE
+/src/ - Smart contracts written in Cairo
+/frontend/ - React/Next.js web application
+/tests/ - Comprehensive test suites
+/scripts/ - Deployment and setup scripts
+Documentation files with demo scripts and pitch materials
+
+🚀 GETTING STARTED
+1. Install Cairo and Scarb: https://book.cairo-lang.org/
+2. Clone project and run: scarb build
+3. Run tests: snforge test
+4. Setup frontend: cd frontend && npm install
+5. Deploy contracts: ./scripts/deploy.sh
+
+📞 CONTACT
+Team: BitVault Finance
+Email: team@bitvault.finance
+GitHub: https://github.com/bitvault-finance
+Demo Video: [3-minute demonstration]
+
+Built with ❤️ on Starknet for the Bitcoin ecosystem

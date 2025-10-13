@@ -1,0 +1,40 @@
+{
+  "name": "BitVault Finance",
+  "tagline": "Cross-Chain Bitcoin DeFi Vault with Privacy & Yield Optimization",
+  "track": "Bitcoin Unleashed",
+  "description": "A comprehensive DeFi platform that bridges native Bitcoin to Starknet, enabling secure staking, lending, and yield farming with privacy-preserving features",
+  "core_features": {
+    "bitcoin_bridge": "Trustless Bitcoin to Starknet bridge using atomic swaps",
+    "defi_vault": "Smart contract vaults for BTC staking and lending",
+    "yield_optimization": "Automated yield farming across multiple protocols",
+    "privacy_layer": "Zero-knowledge proofs for private transactions",
+    "mobile_interface": "Mobile-first dApp for accessibility",
+    "cross_chain_swaps": "Seamless BTC <-> STRK <-> ETH swaps"
+  },
+  "sponsor_integrations": {
+    "Xverse": "Primary Bitcoin wallet integration for seamless UX",
+    "Atomiq": "Cross-chain swap infrastructure for BTC/STRK",
+    "VESU": "Lending protocol integration for all 3 subtracks",
+    "Troves": "Yield aggregation and liquid staking",
+    "OpenZeppelin": "Security contracts and auditing tools",
+    "Wootzapp": "AI-powered portfolio optimization"
+  },
+  "technical_stack": {
+    "smart_contracts": "Cairo for Starknet contracts",
+    "bitcoin_integration": "Bitcoin Script + atomic swaps",
+    "frontend": "Next.js + React + TypeScript",
+    "wallet_integration": "Xverse + ArgentX + Braavos",
+    "privacy": "STARK proofs for transaction privacy",
+    "mobile": "React Native for mobile app"
+  },
+  "target_prizes": [
+    "Bitcoin Unleashed - Xverse Prize Pool - 1st Place: $6,000 Enterprise Package",
+    "Bitcoin Unleashed - Starkware Prize Pool: $4,000",
+    "Bitcoin Unleashed - Atomiq Prize Pool: 0.03 BTC (~$2,000)",
+    "Bitcoin Unleashed - VESU Subtrack - Best UX Flow: $1,000",
+    "Bitcoin Unleashed - VESU Subtrack - Best Mobile DeFi: $1,000",
+    "Bitcoin Unleashed - VESU Subtrack - Best Yield Wizard: $1,000",
+    "Bitcoin Unleashed - Troves Prize Pool: $1,500",
+    "Open Track - OpenZeppelin Prize Pool: $3,000"
+  ]
+}
