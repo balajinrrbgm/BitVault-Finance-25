@@ -8,18 +8,6 @@ BitVault Finance is a comprehensive DeFi platform built on Starknet that bridges
 
 This project is submitted to the **Starknet Re{Solve} Hackathon** in the **Bitcoin Unleashed** track.
 
-### Target Prizes
-- ✅ Bitcoin Unleashed - Xverse Prize Pool - 1st Place: $6,000 Enterprise Package
-- ✅ Bitcoin Unleashed - Starkware Prize Pool: $4,000
-- ✅ Bitcoin Unleashed - Atomiq Prize Pool: 0.03 BTC (~$2,000)
-- ✅ Bitcoin Unleashed - VESU Subtrack - Best UX Flow: $1,000
-- ✅ Bitcoin Unleashed - VESU Subtrack - Best Mobile DeFi: $1,000
-- ✅ Bitcoin Unleashed - VESU Subtrack - Best Yield Wizard: $1,000
-- ✅ Bitcoin Unleashed - Troves Prize Pool: $1,500
-- ✅ Open Track - OpenZeppelin Prize Pool: $3,000
-
-**Total Potential Prize Value: ~$19,500+**
-
 ## 🌟 Key Features
 
 ### 🔗 Bitcoin Bridge
