@@ -1,24 +1,12 @@
 use core::traits::Into;
-use core::option::OptionTrait;
 use core::array::SpanTrait;
-use starknet::core::pedersen::PedersenTrait;
+use core::poseidon::poseidon_hash_span;
 
-fn hash_array(data: Span<felt252>) -> felt252 {
-    let mut state = 0;
-    let mut i = 0;
-    
-    loop {
-        if i >= data.len() {
-            break state;
-        }
-        state = PedersenTrait::new(state).update(*data.at(i)).finalize();
-        i = i + 1;
-    }
+pub fn hash_array(data: Span<felt252>) -> felt252 {
+    poseidon_hash_span(data)
 }
 
-fn hash_u256(value: u256) -> felt252 {
-    PedersenTrait::new(0)
-        .update(value.low.into())
-        .update(value.high.into())
-        .finalize()
+pub fn hash_u256(value: u256) -> felt252 {
+    let data = array![value.low.into(), value.high.into()];
+    poseidon_hash_span(data.span())
 }

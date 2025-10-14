@@ -29,23 +29,23 @@ struct Vault {
 #[starknet::contract]
 mod VaultManager {
     use super::{Vault, IVaultManager};
-    use starknet::{ContractAddress, get_caller_address, get_block_timestamp};
-    use openzeppelin::access::ownable::OwnableComponent;
-    use openzeppelin::security::reentrancyguard::ReentrancyGuardComponent;
-    use openzeppelin::token::erc20::interface::{IERC20Dispatcher, IERC20DispatcherTrait};
+    use starknet::{ContractAddress, get_caller_address, get_block_timestamp, get_contract_address};
+    use openzeppelin_access::ownable::OwnableComponent;
+    use openzeppelin_security::reentrancyguard::ReentrancyGuardComponent;
+    use openzeppelin_token::erc20::interface::{IERC20Dispatcher, IERC20DispatcherTrait};
 
     component!(path: OwnableComponent, storage: ownable, event: OwnableEvent);
     component!(path: ReentrancyGuardComponent, storage: reentrancy_guard, event: ReentrancyGuardEvent);
 
     #[abi(embed_v0)]
-    impl OwnableMixinImpl = OwnableComponent::OwnableMixinImpl<ContractState>;
+    impl OwnableImpl = OwnableComponent::OwnableImpl<ContractState>;
     impl OwnableInternalImpl = OwnableComponent::InternalImpl<ContractState>;
 
     impl ReentrancyGuardInternalImpl = ReentrancyGuardComponent::InternalImpl<ContractState>;
 
     #[storage]
     struct Storage {
-        vaults: LegacyMap<u256, Vault>,
+        vaults: starknet::storage::Map<u256, Vault>,
         vault_count: u256,
         total_btc_staked: u256,
         yield_rate: u256, // Annual yield rate in basis points (10000 = 100%)

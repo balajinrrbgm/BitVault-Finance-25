@@ -1,14 +1,12 @@
 import type { AppProps } from 'next/app';
-import { StarknetConfig, publicProvider } from '@starknet-react/core';
-import { Chain, goerli, mainnet } from '@starknet-react/chains';
-import { ArgentMobileConnector } from 'starknetkit/argentMobile';
-import { WebWalletConnector } from 'starknetkit/webwallet';
+import { StarknetConfig, publicProvider, argent, braavos } from '@starknet-react/core';
+import { sepolia, mainnet } from '@starknet-react/chains';
 import '../styles/globals.css';
 
-const chains: Chain[] = [mainnet, goerli];
+const chains = [sepolia, mainnet];
 const connectors = [
-  new ArgentMobileConnector(),
-  new WebWalletConnector({ url: "https://web.argent.xyz" }),
+  braavos(),
+  argent(),
 ];
 
 function MyApp({ Component, pageProps }: AppProps) {
@@ -17,6 +15,7 @@ function MyApp({ Component, pageProps }: AppProps) {
       chains={chains}
       provider={publicProvider()}
       connectors={connectors}
+      autoConnect={true}
     >
       <Component {...pageProps} />
     </StarknetConfig>
