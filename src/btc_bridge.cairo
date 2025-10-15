@@ -2,7 +2,6 @@ use starknet::{
     ContractAddress, 
     get_caller_address,
     get_block_timestamp,
-    storage::{StorageBaseAddress, StorageAccess, Store, StorageMap},
     contract_address_const
 };
 
@@ -19,7 +18,7 @@ trait IBTCBridge<TContractState> {
     fn get_btc_price(self: @TContractState) -> u256;
 }
 
-#[derive(Drop, Serde, starknet::Store)]
+#[derive(Copy, Drop, Serde, starknet::Store)]
 struct BTCDeposit {
     txid: felt252,
     amount: u256,
@@ -30,7 +29,7 @@ struct BTCDeposit {
     confirmations: u256,
 }
 
-#[derive(Drop, Serde, starknet::Store)]
+#[derive(Copy, Drop, Serde, starknet::Store)]
 struct WithdrawalRequest {
     id: felt252,
     user: ContractAddress,
@@ -42,32 +41,36 @@ struct WithdrawalRequest {
 
 #[starknet::contract]
 mod BTCBridge {
-    // Component implementations
-    impl OwnableImpl = OwnableComponent::OwnableImpl<ContractState>;
-    impl OwnableInternalImpl = OwnableComponent::InternalImpl<ContractState>;
-    
-    impl PausableImpl = PausableComponent::PausableImpl<ContractState>;
-    impl PausableInternalImpl = PausableComponent::InternalImpl<ContractState>;
     use super::{BTCDeposit, WithdrawalRequest, IBTCBridge};
     use starknet::{
         ContractAddress, 
         get_caller_address, 
         get_block_timestamp, 
         get_contract_address,
-        storage::{StorageAccess, Store, StorageMap}
     };
-    use openzeppelin::token::erc20::interface::{IERC20Dispatcher, IERC20DispatcherTrait};
-    use openzeppelin::access::ownable::OwnableComponent;
-    use openzeppelin::security::pausable::PausableComponent;
+    use openzeppelin_token::erc20::interface::{IERC20Dispatcher, IERC20DispatcherTrait};
+    use openzeppelin_access::ownable::OwnableComponent;
+    use openzeppelin_security::pausable::PausableComponent;
     use core::array::SpanTrait;
     use core::traits::TryInto;
     use core::traits::Into;
-    use core::zeroable::Zeroable;
+    use core::num::traits::Zero;
+
+    component!(path: OwnableComponent, storage: ownable, event: OwnableEvent);
+    component!(path: PausableComponent, storage: pausable, event: PausableEvent);
+
+    #[abi(embed_v0)]
+    impl OwnableImpl = OwnableComponent::OwnableImpl<ContractState>;
+    impl OwnableInternalImpl = OwnableComponent::InternalImpl<ContractState>;
+    
+    #[abi(embed_v0)]
+    impl PausableImpl = PausableComponent::PausableImpl<ContractState>;
+    impl PausableInternalImpl = PausableComponent::InternalImpl<ContractState>;
 
     #[storage]
     struct Storage {
-        btc_deposits: StorageMap<felt252, BTCDeposit>,
-        withdrawal_requests: StorageMap<felt252, WithdrawalRequest>,
+        btc_deposits: starknet::storage::Map<felt252, BTCDeposit>,
+        withdrawal_requests: starknet::storage::Map<felt252, WithdrawalRequest>,
         wrapped_btc_supply: u256,
         btc_price: u256, // Price in USD with 8 decimals
         bridge_fee: u256, // Fee in basis points (10000 = 100%)
@@ -75,7 +78,9 @@ mod BTCBridge {
         wrapped_btc_token: ContractAddress,
         oracle_address: ContractAddress,
         withdrawal_counter: u256,
+        #[substorage(v0)]
         ownable: OwnableComponent::Storage,
+        #[substorage(v0)]
         pausable: PausableComponent::Storage,
     }
 
@@ -90,9 +95,9 @@ mod BTCBridge {
         BTCPriceUpdated: BTCPriceUpdated,
         BridgeFeeUpdated: BridgeFeeUpdated,
         #[flat]
-        Ownable: OwnableComponent::Event,
+        OwnableEvent: OwnableComponent::Event,
         #[flat]
-        Pausable: PausableComponent::Event,
+        PausableEvent: PausableComponent::Event,
     }
 
     #[derive(Drop, starknet::Event)]
@@ -378,7 +383,7 @@ mod BTCBridge {
         fn _generate_withdrawal_id(ref self: ContractState) -> felt252 {
             let counter = self.withdrawal_counter.read() + 1;
             self.withdrawal_counter.write(counter);
-            counter.into()
+            counter.low.into()
         }
     }
 

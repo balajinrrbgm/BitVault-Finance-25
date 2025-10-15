@@ -1,10 +1,5 @@
 use starknet::ContractAddress;
 use starknet::get_caller_address;
-use starknet::storage::StorageAccess;
-use core::traits::Into;
-use core::option::OptionTrait;
-use starknet::storage_access::{StorageBaseAddress, Store};
-use starknet::SyscallResult;
 
 #[starknet::interface]
 trait IPrivacyMixer<TContractState> {
@@ -20,7 +15,7 @@ trait IPrivacyMixer<TContractState> {
     fn get_deposit_count(self: @TContractState) -> u256;
 }
 
-#[derive(Drop, Serde, starknet::Store)]
+#[derive(Drop, Serde, starknet::Store, Copy)]
 struct DepositCommitment {
     commitment: felt252,
     amount: u256,
@@ -29,69 +24,59 @@ struct DepositCommitment {
     is_spent: bool,
 }
 
-#[derive(Drop, Serde, starknet::Store)]
+#[derive(Drop, Serde, starknet::Store, Copy)]
 struct WithdrawalProof {
     nullifier: felt252,
     recipient: ContractAddress,
     amount: u256,
     timestamp: u64,
-    merkle_proof: Array<felt252>,
 }
 
-#[derive(Drop, Serde, starknet::Store)]
-struct MerkleTreeNode {
-    hash: felt252,
-    level: u256,
-}
-
-#[derive(Drop, Serde, starknet::Store)]
+#[derive(Drop, Serde, starknet::Store, Copy)]
 struct MerkleTree {
     root: felt252,
     depth: u256,
     next_index: u256,
-    nodes: starknet::StorageMap::<(u256, u256), felt252>, // (level, index) -> hash
 }
 
 #[starknet::contract]
 mod PrivacyMixer {
     use super::{DepositCommitment, WithdrawalProof, MerkleTree, IPrivacyMixer};
     use starknet::{ContractAddress, get_caller_address, get_block_timestamp, get_contract_address};
-    use openzeppelin::token::erc20::interface::{IERC20Dispatcher, IERC20DispatcherTrait};
-    use openzeppelin::access::ownable::interface::IOwnable;
-    use openzeppelin::security::reentrancyguard::interface::IReentrancyGuard;
-    use openzeppelin::access::ownable::ownable::OwnableComponent;
-    use openzeppelin::security::reentrancyguard::reentrancyguard::ReentrancyGuardComponent;
-    use starknet::storage_access::{StorageAddress, Store, StorageBaseAddress, StorageAccess};
+    use openzeppelin_token::erc20::interface::{IERC20Dispatcher, IERC20DispatcherTrait};
+    use openzeppelin_access::ownable::OwnableComponent;
+    use openzeppelin_security::reentrancyguard::ReentrancyGuardComponent;
     use core::array::SpanTrait;
     use core::traits::{TryInto, Into};
+    use core::poseidon::poseidon_hash_span;
 
-    #[event]
-    #[derive(Drop, starknet::Event)]
-    enum Event {
-        #[flat]
-        OwnableEvent: OwnableComponent::Event,
-        #[flat]
-        ReentrancyGuardEvent: ReentrancyGuardComponent::Event,
-    }
+    component!(path: OwnableComponent, storage: ownable, event: OwnableEvent);
+    component!(path: ReentrancyGuardComponent, storage: reentrancy_guard, event: ReentrancyGuardEvent);
 
+    #[abi(embed_v0)]
+    impl OwnableImpl = OwnableComponent::OwnableImpl<ContractState>;
     impl OwnableInternalImpl = OwnableComponent::InternalImpl<ContractState>;
+    
     impl ReentrancyGuardInternalImpl = ReentrancyGuardComponent::InternalImpl<ContractState>;
 
     #[storage]
     struct Storage {
-        commitments: LegacyMap<felt252, bool>,
-        nullifiers: LegacyMap<felt252, bool>,
+        commitments: starknet::storage::Map<felt252, bool>,
+        nullifiers: starknet::storage::Map<felt252, bool>,
         merkle_root: felt252,
-        deposit_commitments: LegacyMap<felt252, DepositCommitment>,
-        withdrawal_proofs: LegacyMap<felt252, WithdrawalProof>,
+        deposit_commitments: starknet::storage::Map<felt252, DepositCommitment>,
+        withdrawal_proofs: starknet::storage::Map<felt252, WithdrawalProof>,
         merkle_tree: MerkleTree,
+        merkle_tree_nodes: starknet::storage::Map<(u256, u256), felt252>, // (level, index) -> hash
         denomination: u256, // Fixed denomination for privacy
         mixing_token: ContractAddress,
         deposit_count: u256,
         withdrawal_count: u256,
         verifier_contract: ContractAddress, // ZK proof verifier
         merkle_tree_height: u256,
+        #[substorage(v0)]
         ownable: OwnableComponent::Storage,
+        #[substorage(v0)]
         reentrancy_guard: ReentrancyGuardComponent::Storage,
     }
 
@@ -99,11 +84,11 @@ mod PrivacyMixer {
     #[derive(Drop, starknet::Event)]
     enum Event {
         CommitmentDeposited: CommitmentDeposited,
-        PrivateWithdrawal: PrivateWithdrawal,
         NullifierUsed: NullifierUsed,
+        PrivateWithdrawal: PrivateWithdrawal,
+        ProofVerified: ProofVerified,
         MerkleRootUpdated: MerkleRootUpdated,
         DepositMixed: DepositMixed,
-        ProofVerified: ProofVerified,
         #[flat]
         OwnableEvent: OwnableComponent::Event,
         #[flat]
@@ -177,7 +162,6 @@ mod PrivacyMixer {
             root: 0,
             depth: merkle_tree_height,
             next_index: 0,
-            levels: Default::default(),
         };
         self.merkle_tree.write(empty_tree);
         self.merkle_root.write(0);
@@ -279,7 +263,6 @@ mod PrivacyMixer {
                 recipient,
                 amount: withdrawal_amount,
                 timestamp: current_time,
-                merkle_proof: ArrayTrait::new(), // Would include actual Merkle proof
             };
 
             let withdrawal_hash = self._compute_withdrawal_hash(nullifier, recipient, withdrawal_amount);
@@ -307,7 +290,7 @@ mod PrivacyMixer {
             // In production, this would use proper cryptographic hash functions
             let caller = get_caller_address();
             let commitment_data = array![amount.low.into(), amount.high.into(), secret, caller.into()];
-            hash::hash_array(commitment_data.span())
+            poseidon_hash_span(commitment_data.span())
         }
 
         fn verify_zk_proof(
@@ -321,14 +304,11 @@ mod PrivacyMixer {
             // For demo purposes, we'll do basic validation
             let is_valid = proof.len() > 0 && public_inputs.len() > 0;
 
-            let proof_hash = self._compute_proof_hash(proof.span());
-            let public_inputs_hash = poseidon::poseidon_hash_span(public_inputs.span());
+            let _proof_hash = self._compute_proof_hash(proof.span());
+            let _public_inputs_hash = poseidon_hash_span(public_inputs.span());
 
-            self.emit(ProofVerified {
-                proof_hash,
-                public_inputs_hash,
-                is_valid,
-            });
+            // Note: Cannot emit events from view functions
+            // self.emit(ProofVerified { proof_hash, public_inputs_hash, is_valid });
 
             is_valid
         }
@@ -381,7 +361,7 @@ mod PrivacyMixer {
             let new_root = if tree.root == 0 {
                 commitment
             } else {
-                poseidon::poseidon_hash_span(array![tree.root, commitment].span())
+                poseidon_hash_span(array![tree.root, commitment].span())
             };
 
             tree.root = new_root;
@@ -404,7 +384,7 @@ mod PrivacyMixer {
             amount: u256
         ) -> felt252 {
             let data = array![nullifier, recipient.into(), amount.low.into(), amount.high.into()];
-            poseidon::poseidon_hash_span(data.span())
+            poseidon_hash_span(data.span())
         }
 
         fn _compute_proof_hash(self: @ContractState, proof: Span<u256>) -> felt252 {
@@ -412,7 +392,7 @@ mod PrivacyMixer {
                 return 0;
             }
 
-            let mut hash_inputs = ArrayTrait::new();
+            let mut hash_inputs: Array<felt252> = ArrayTrait::new();
             let mut i = 0;
             loop {
                 if i >= proof.len() {
@@ -424,7 +404,7 @@ mod PrivacyMixer {
                 i += 1;
             };
 
-            poseidon::poseidon_hash_span(hash_inputs.span())
+            poseidon_hash_span(hash_inputs.span())
         }
     }
 

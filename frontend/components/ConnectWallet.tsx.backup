@@ -1,0 +1,62 @@
+import React, { useState, useEffect } from 'react';
+import { useAccount, useConnect, useDisconnect } from '@starknet-react/core';
+import { Wallet, LogOut, Copy, CheckCircle } from 'lucide-react';
+
+declare global {
+  interface Window {
+    starknet?: any;
+  }
+}
+
+export const ConnectWallet: React.FC = () => {
+  const { address, isConnected } = useAccount();
+  const { connect, connectors } = useConnect();
+  const { disconnect } = useDisconnect();
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const formatAddress = (addr: string) => {
+    return \...\;
+  };
+
+  const copyAddress = () => {
+    if (address && typeof navigator !== 'undefined') {
+      navigator.clipboard.writeText(address);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
+  const handleConnect = async () => {
+    try {
+      const availableConnector = connectors.find(connector => connector.available());
+      
+      if (availableConnector) {
+        await connect({ connector: availableConnector });
+      } else {
+        if (typeof window !== 'undefined' && window.starknet) {
+          await window.starknet.enable();
+        } else {
+          alert('Please install ArgentX or Braavos wallet extension');
+        }
+      }
+      setShowDropdown(false);
+    } catch (error) {
+      console.error('Failed to connect wallet:', error);
+      alert('Failed to connect wallet. Please try again.');
+    }
+  };
+
+  const handleDisconnect = () => {
+    disconnect();
+    setShowDropdown(false);
+  };
+
+  if (!mounted) {
+    return (
+      <button className=" flex items-center space-x-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white px-5 py-2.5 rounded-xl font-semibold shadow-lg shadow-orange-500/30>

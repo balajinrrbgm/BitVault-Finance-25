@@ -1,11 +1,6 @@
 use starknet::ContractAddress;
 use starknet::get_caller_address;
 use starknet::get_block_timestamp;
-use starknet::storage::{LegacyMap, StorageAccess};
-use openzeppelin::access::ownable::interface::IOwnable;
-use openzeppelin::security::reentrancyguard::interface::IReentrancyGuard;
-use openzeppelin::access::ownable::ownable::OwnableComponent;
-use openzeppelin::security::reentrancyguard::reentrancyguard::ReentrancyGuardComponent;
 
 #[starknet::interface]
 trait IYieldOptimizer<TContractState> {
@@ -22,16 +17,14 @@ trait IYieldOptimizer<TContractState> {
     fn get_best_yield_protocol(self: @TContractState) -> u256;
 }
 
-#[derive(Drop, Serde, starknet::Store)]
+#[derive(Drop, Serde, starknet::Store, Copy)]
 struct Allocation {
     vault_id: u256,
-    protocol_allocations: LegacyMap<u256, u256>, // protocol_id -> amount
     total_allocated: u256,
     last_rebalance: u64,
-    target_allocation: LegacyMap<u256, u256>, // protocol_id -> percentage (basis points)
 }
 
-#[derive(Drop, Serde, starknet::Store)]
+#[derive(Drop, Serde, starknet::Store, Copy)]
 struct Protocol {
     id: u256,
     apy: u256,
@@ -44,7 +37,7 @@ struct Protocol {
     risk_level: u8,
 }
 
-#[derive(Drop, Serde, starknet::Store)]
+#[derive(Drop, Serde, starknet::Store, Copy)]
 struct RewardHarvest {
     vault_id: u256,
     protocol_id: u256,
@@ -57,43 +50,37 @@ struct RewardHarvest {
 mod YieldOptimizer {
     use super::{Allocation, Protocol, RewardHarvest, IYieldOptimizer};
     use starknet::{ContractAddress, get_caller_address, get_block_timestamp, get_contract_address};
-    use openzeppelin::token::erc20::interface::{IERC20Dispatcher, IERC20DispatcherTrait};
-    use openzeppelin::access::ownable::interface::IOwnable;
-    use openzeppelin::security::reentrancyguard::interface::IReentrancyGuard;
-    use openzeppelin::access::ownable::ownable::OwnableComponent;
-    use openzeppelin::security::reentrancyguard::reentrancyguard::ReentrancyGuardComponent;
+    use openzeppelin_token::erc20::interface::{IERC20Dispatcher, IERC20DispatcherTrait};
+    use openzeppelin_access::ownable::OwnableComponent;
+    use openzeppelin_security::reentrancyguard::ReentrancyGuardComponent;
 
-    #[event]
-    #[derive(Drop, starknet::Event)]
-    enum OwnableEvent {}
+    component!(path: OwnableComponent, storage: ownable, event: OwnableEvent);
+    component!(path: ReentrancyGuardComponent, storage: reentrancy_guard, event: ReentrancyGuardEvent);
 
-    #[event]
-    #[derive(Drop, starknet::Event)]
-    enum ReentrancyGuardEvent {}
-
+    #[abi(embed_v0)]
     impl OwnableImpl = OwnableComponent::OwnableImpl<ContractState>;
-    impl ReentrancyGuardImpl = ReentrancyGuardComponent::ReentrancyGuardImpl<ContractState>;
     impl OwnableInternalImpl = OwnableComponent::InternalImpl<ContractState>;
+    
     impl ReentrancyGuardInternalImpl = ReentrancyGuardComponent::InternalImpl<ContractState>;
-    impl StorageAccessStorageField = starknet::storage_access::StorageFieldImpl<ContractState>;
-    impl StorageAccessComponents = starknet::storage_access::StorageAccessImpl<ContractState>;
 
     #[storage]
     struct Storage {
-        protocol_apys: LegacyMap<u256, u256>,
-        protocols: LegacyMap<u256, Protocol>,
-        vault_allocations: LegacyMap<u256, Allocation>,
-        last_rebalance: LegacyMap<u256, u64>,
-        protocol_allocations: LegacyMap<(u256, u256), u256>, // (protocol_id, vault_id) -> amount
-        target_allocations: LegacyMap<(u256, u256), u256>, // (protocol_id, vault_id) -> percentage
+        protocol_apys: starknet::storage::Map<u256, u256>,
+        protocols: starknet::storage::Map<u256, Protocol>,
+        vault_allocations: starknet::storage::Map<u256, Allocation>,
+        last_rebalance: starknet::storage::Map<u256, u64>,
+        protocol_allocations: starknet::storage::Map<(u256, u256), u256>, // (protocol_id, vault_id) -> amount
+        target_allocations: starknet::storage::Map<(u256, u256), u256>, // (protocol_id, vault_id) -> percentage
         protocol_count: u256,
         vault_manager: ContractAddress,
         rebalance_threshold: u256, // Basis points difference to trigger rebalance
         min_rebalance_interval: u64, // Minimum seconds between rebalances
         performance_fee: u256, // Fee in basis points for yield optimization
-        reward_harvests: LegacyMap<u256, RewardHarvest>, // harvest_id -> harvest info
+        reward_harvests: starknet::storage::Map<u256, RewardHarvest>, // harvest_id -> harvest info
         harvest_counter: u256,
+        #[substorage(v0)]
         ownable: OwnableComponent::Storage,
+        #[substorage(v0)]
         reentrancy_guard: ReentrancyGuardComponent::Storage,
     }
 
@@ -406,13 +393,14 @@ mod YieldOptimizer {
 
             let protocol = Protocol {
                 id: protocol_id,
-                contract_address: protocol_address,
-                name: 'new_protocol', // Would be passed as parameter
+                apy: base_apy,
+                total_tvl: 0,
+                min_allocation: 0,
+                max_allocation: 0,
+                is_active: true,
+                last_update: get_block_timestamp(),
                 current_apy: base_apy,
                 risk_level: 5, // Default medium risk
-                tvl: 0,
-                is_active: true,
-                last_updated: get_block_timestamp(),
             };
 
             self.protocols.write(protocol_id, protocol);
@@ -434,10 +422,19 @@ mod YieldOptimizer {
             let old_apy = self.protocol_apys.read(protocol_id);
             self.protocol_apys.write(protocol_id, new_apy);
 
-            let mut protocol = self.protocols.read(protocol_id);
-            protocol.current_apy = new_apy;
-            protocol.last_updated = get_block_timestamp();
-            self.protocols.write(protocol_id, protocol);
+            let protocol = self.protocols.read(protocol_id);
+            let updated_protocol = Protocol {
+                id: protocol.id,
+                apy: new_apy,
+                total_tvl: protocol.total_tvl,
+                min_allocation: protocol.min_allocation,
+                max_allocation: protocol.max_allocation,
+                is_active: protocol.is_active,
+                last_update: get_block_timestamp(),
+                current_apy: new_apy,
+                risk_level: protocol.risk_level,
+            };
+            self.protocols.write(protocol_id, updated_protocol);
 
             self.emit(ProtocolAPYUpdated {
                 protocol_id,
