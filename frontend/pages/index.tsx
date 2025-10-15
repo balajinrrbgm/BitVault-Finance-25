@@ -3,6 +3,8 @@ import { Header } from '../components/Header';
 import { VaultCard } from '../components/VaultCard';
 import { ClientOnly } from '../components/ClientOnly';
 import { TestnetHelper } from '../components/TestnetHelper';
+import { NetworkStatus } from '../components/NetworkStatus';
+import { NetworkDebugger } from '../components/NetworkDebugger';
 import { TrendingUp, Shield, Zap, Bitcoin, Lock, Coins, Sparkles, ArrowRight, BarChart3, Users } from 'lucide-react';
 
 const HomePage: React.FC = () => {
@@ -359,6 +361,8 @@ const HomePage: React.FC = () => {
       {/* Testnet Helper */}
       <ClientOnly>
         <TestnetHelper />
+        <NetworkStatus />
+        <NetworkDebugger />
       </ClientOnly>
     </div>
   );

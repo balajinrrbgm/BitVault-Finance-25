@@ -13,6 +13,24 @@ export const ConnectWallet: React.FC = () => {
 
   useEffect(() => {
     setMounted(true);
+
+    // Add error handling for wallet account changes
+    const handleError = (event: any) => {
+      if (event.error && event.error.message?.includes('Cannot read properties of undefined')) {
+        console.warn('Wallet account change error caught and handled:', event.error);
+        setConnectionError('Wallet state syncing...');
+        setTimeout(() => setConnectionError(null), 3000);
+      }
+    };
+
+    // Listen for potential wallet errors
+    window.addEventListener('error', handleError);
+    window.addEventListener('unhandledrejection', handleError);
+
+    return () => {
+      window.removeEventListener('error', handleError);
+      window.removeEventListener('unhandledrejection', handleError);
+    };
   }, []);
 
   const formatAddress = (addr: string) => {
@@ -34,18 +52,44 @@ export const ConnectWallet: React.FC = () => {
   const handleConnect = async (connector: any) => {
     try {
       setConnectionError(null);
+      console.log('🔗 Attempting to connect with:', connector.name);
+      
+      // Add small delay to prevent rapid connection attempts
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
       await connect({ connector });
       setShowDropdown(false);
-    } catch (error) {
-      console.error('Failed to connect wallet:', error);
-      setConnectionError('Failed to connect wallet. Please try again.');
+      console.log('✅ Wallet connected successfully');
+    } catch (error: any) {
+      console.error('❌ Failed to connect wallet:', error);
+      
+      // Handle specific error types
+      if (error.message?.includes('Cannot read properties of undefined')) {
+        setConnectionError('Wallet account sync issue. Please try refreshing the page.');
+      } else if (error.message?.includes('User rejected')) {
+        setConnectionError('Connection cancelled by user.');
+      } else {
+        setConnectionError('Failed to connect wallet. Please try again.');
+      }
+      
+      // Clear error after 5 seconds
+      setTimeout(() => setConnectionError(null), 5000);
     }
   };
 
   const handleDisconnect = () => {
-    disconnect();
-    setShowDropdown(false);
-    setConnectionError(null);
+    try {
+      console.log('🔌 Disconnecting wallet...');
+      disconnect();
+      setShowDropdown(false);
+      setConnectionError(null);
+      console.log('✅ Wallet disconnected successfully');
+    } catch (error) {
+      console.error('❌ Error disconnecting wallet:', error);
+      // Force close dropdown even if disconnect fails
+      setShowDropdown(false);
+      setConnectionError(null);
+    }
   };
 
   if (!mounted) {

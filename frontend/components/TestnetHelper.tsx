@@ -45,6 +45,18 @@ export const TestnetHelper: React.FC<TestnetHelperProps> = ({ onBalanceUpdate })
       token: 'ETH'
     },
     {
+      name: 'BlastAPI Sepolia RPC v0.9',
+      url: 'https://starknet-sepolia.public.blastapi.io/rpc/v0_9',
+      description: 'Primary RPC endpoint (v0.9.0 compatible)',
+      token: 'RPC'
+    },
+    {
+      name: 'Nethermind Free RPC v0.9',
+      url: 'https://free-rpc.nethermind.io/sepolia-juno/v0_9',
+      description: 'Alternative free RPC endpoint (v0.9.0)',
+      token: 'RPC'
+    },
+    {
       name: 'Bitcoin Testnet Faucet',
       url: 'https://bitcoinfaucet.uo1.net/',
       description: 'Get Bitcoin testnet coins',
@@ -173,7 +185,7 @@ export const TestnetHelper: React.FC<TestnetHelperProps> = ({ onBalanceUpdate })
                 <ul className="space-y-1 list-disc list-inside">
                   <li>Use mock tokens for UI testing</li>
                   <li>Get real testnet ETH for gas fees</li>
-                  <li>Switch wallet to Sepolia testnet</li>
+                  <li>Switch wallet to Sepolia/Sepolia-Alpha testnet</li>
                   <li>Transactions won't affect mainnet</li>
                 </ul>
               </div>
